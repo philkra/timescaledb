@@ -16,21 +16,11 @@
 
 </div>
 
-## Install TimescaleDB
+## Try TimescaleDB local
 
-Install from a Docker container:
-
-1. Run the TimescaleDB container:
-
-    ```bash
-    docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=password timescale/timescaledb:latest-pg17
-    ```
-
-1. Connect to a database:
-
-    ```bash
-    docker exec -it timescaledb psql -d "postgres://postgres:password@localhost/postgres"
-    ```
+```bash
+wget -O try https://tsdb.co/try && sh try
+```
 
 See [other installation options](https://docs.timescale.com/self-hosted/latest/install/) or try [Timescale Cloud](https://docs.timescale.com/getting-started/latest/) for free.
 
