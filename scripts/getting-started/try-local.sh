@@ -96,7 +96,7 @@ wait_for_timescaledb() {
     timescaledb_ready=0
     while [ $timescaledb_ready -le 0 ]
     do
-        timescaledb_response=$(docker exec -ti "$CONTAINER_NAME" pg_isready -U "$DB_USER")
+        timescaledb_response=$(docker exec "$CONTAINER_NAME" pg_isready -U "$DB_USER")
         if [[ "$timescaledb_response" == *"$is_ready_string"* ]]; then
             echo "TimescaleDB ready..."
             timescaledb_ready=1
