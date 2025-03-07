@@ -90,11 +90,19 @@ start_timescaledb() {
     fi
 }
 
-# Wait for Postgres to have fully started
-wait_for_postgres() {
-    until [ "`docker inspect -f {{.State.Running}} ${CONTAINER_NAME}`"=="true" ]; do
-        sleep 0.5;
-    done;
+# Wait for TimescaleDB to have fully started
+wait_for_timescaledb() {
+    is_ready_string="accepting connections"
+    timescaledb_ready=0
+    while [ $timescaledb_ready -le 0 ]
+    do
+        timescaledb_response=$(docker exec -ti "$CONTAINER_NAME" pg_isready -U "$DB_USER")
+        if [[ "$timescaledb_response" == *"$is_ready_string"* ]]; then
+            echo "TimescaleDB ready..."
+            timescaledb_ready=1
+        fi
+        sleep 1
+    done
 }
 
 # Function to log into PostgreSQL
@@ -109,7 +117,7 @@ main() {
     check_os || exit 1
     check_docker || exit 1
     start_timescaledb || exit 1
-    wait_for_postgres || exit 1
+    wait_for_timescaledb || exit 1
     login_postgres
 }
 
