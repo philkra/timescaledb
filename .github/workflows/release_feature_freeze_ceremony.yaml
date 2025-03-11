@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install pip
-          pip install PyGithub requests
+          pip install PyGithub requests j2cli
 
       - name: Set version configuration
         run: |
