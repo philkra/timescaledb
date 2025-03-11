@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   release-feature-freeze-ceremony:
-    name: Minor Release - Feature Freeze
+    name: Feature Freeze Ceremony
     runs-on: ubuntu-latest
     environment:
       name: Release Ceremonies
@@ -17,6 +17,12 @@ jobs:
     steps:
       - name: Checkout TimescaleDB
         uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install pip
+          pip install PyGithub requests jinja-cli
 
       - name: Set version configuration
         run: |
@@ -45,7 +51,7 @@ jobs:
       #
       - name: Create CHANGELOG
         run: |
-          ./scripts/merge_changelogs.sh > CHANGELOG_"${{ env.NEXT_VERSION }}".md
+          ./scripts/merge_changelogs.sh > CHANGELOG_${{ env.NEXT_VERSION }}.md
 
           RELEASE_NOTE_START=$(grep -n $CURRENT_VERSION CHANGELOG.md | cut -d ':' -f 1 | head -1)
           CHANGELOG_HEADER_LINES=$((RELEASE_NOTE_START - 1))
