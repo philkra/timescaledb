@@ -18,6 +18,12 @@ jobs:
       - name: Checkout TimescaleDB
         uses: actions/checkout@v4
 
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install pip
+          pip install PyGithub requests
+
       - name: Set version configuration
         run: |
           NEXT_VERSION=$(head -1 version.config | cut -d ' ' -f 3 | cut -d '-' -f 1)
