@@ -1,0 +1,138 @@
+name: Release - Feature Freeze Ceremony
+on:
+  workflow_dispatch:
+
+# The workflow needs the permission to push branches
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-feature-freeze-ceremony:
+    name: Minor Release - Feature Freeze
+    runs-on: ubuntu-latest
+    environment:
+      name: Release Ceremonies
+
+    steps:
+      - name: Checkout TimescaleDB
+        uses: actions/checkout@v4
+
+      - name: Set version configuration
+        run: |
+          NEXT_VERSION=$(head -1 version.config | cut -d ' ' -f 3 | cut -d '-' -f 1)
+          CURRENT_VERSION=$(tail -1 version.config | cut -d ' ' -f 3 | cut -d '-' -f 1)
+          RELEASE_BRANCH="${NEXT_VERSION/%.0/.x}"
+
+          UPDATE_FILE="$CURRENT_VERSION--$NEXT_VERSION.sql"
+          DOWNGRADE_FILE="$NEXT_VERSION--$CURRENT_VERSION.sql"
+          LAST_UPDATE_FILE=$(ls sql/updates/*--${CURRENT_VERSION}.sql | head -1 | cut -d '/' -f 3)
+          LAST_DOWNGRADE_FILE=$(ls sql/updates/${CURRENT_VERSION}--*.sql | head -1 | cut -d '/' -f 3)
+
+          echo $RELEASE_BRANCH >> $GITHUB_ENV
+          echo $CURRENT_VERSION >> $GITHUB_ENV
+          echo $NEXT_VERSION >> $GITHUB_ENV
+          echo $PREVIOUS_VERSION >> $GITHUB_ENV
+
+          echo $UPDATE_FILE >> $GITHUB_ENV
+          echo $DOWNGRADE_FILE >> $GITHUB_ENV
+          echo $LAST_UPDATE_FILE >> $GITHUB_ENV
+          echo $LAST_DOWNGRADE_FILE >> $GITHUB_ENV
+
+          echo "Release branch: $RELEASE_BRANCH"
+
+      # Generate the CHANGELOG in a separate PR
+      #
+      - name: Create CHANGELOG
+        run: |
+          ./scripts/merge_changelogs.sh > CHANGELOG_"${{ env.NEXT_VERSION }}".md
+
+          RELEASE_NOTE_START=$(grep -n $CURRENT_VERSION CHANGELOG.md | cut -d ':' -f 1 | head -1)
+          CHANGELOG_HEADER_LINES=$((RELEASE_NOTE_START - 1))
+
+          mv CHANGELOG.md CHANGELOG.md.tmp
+          head -n $CHANGELOG_HEADER_LINES CHANGELOG.md.tmp > CHANGELOG.md
+          cat ~/CHANGELOG_"$NEXT_VERSION".md >> CHANGELOG.md
+          CHANGELOG_LENGTH=$(wc -l CHANGELOG.md.tmp | cut -d ' ' -f 5)
+          CHANGELOG_ENTRIES=$((CHANGELOG_LENGTH-CHANGELOG_HEADER_LINES))
+          tail -n "$CHANGELOG_ENTRIES" CHANGELOG.md.tmp >> CHANGELOG.md
+          rm CHANGELOG.md.tmp
+
+      - name: Create Pull Request for CHANGELOG
+        id: cpr_changelog
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+          branch: release/${{ env.NEXT_VERSION }}-changelog"
+          delete-branch: true
+          title: 'Changelog for ${{ env.NEXT_VERSION }}'
+          labels: |
+            release
+          add-paths: |
+            CHANGELOG.md
+
+      - name: Generate upgrade and downgrade files
+        working-directory: ./sql/updates
+        run: |
+          cp latest-dev.sql "${{ env.UPDATE_FILE }}"
+          cp reverse-dev.sql "${{ env.DOWNGRADE_FILE }}"
+
+          truncate -s 0 latest-dev.sql
+          truncate -s 0 reverse-dev.sql
+
+      - name: Adding update & downgrade sql file to CMakeLists.txt
+        working-directory: ./sql
+        run: |
+          gawk -i inplace '/'${{ env.LAST_UPDATE_FILE }}')/ { print; print "    updates/'${{ env.UPDATE_FILE }}')"; next }1' CMakeLists.txt
+          sed -i.bak "s/${{ env.LAST_UPDATE_FILE }})/${{ env.LAST_UPDATE_FILE }}/g" CMakeLists.txt
+
+          gawk -i inplace '/ '${{ env.LAST_DOWNGRADE_FILE }}')/ { print; print "    '${{ env.DOWNGRADE_FILE }}')"; next }1' CMakeLists.txt
+          sed -i.bak "s/ ${{ env.LAST_DOWNGRADE_FILE }})/  ${{ env.LAST_DOWNGRADE_FILE }}/g" CMakeLists.txt
+
+          sed -i.bak "s/FILE reverse-dev.sql)/FILE ${{ env.DOWNGRADE_FILE }})/g" CMakeLists.txt
+
+      - name: Deleting all unreleased pr_* , fix_*
+        working-directory: .unreleased
+        run: |
+          git rm pr_* fix_*
+
+      # Set only next minor release version in version.config 
+      # and create this as a separate PR on `main`
+      # 
+      - name: Set next minor release version.config
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+        run: |
+          sed -i.bak "s/${{ env.CURRENT_VERSION }}/${{ env.NEXT_VERSION }}/g" version.config
+          rm version.config.bak
+
+      - name: Create Pull Request for next version changes
+        id: cpr_next_version_changes
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+          branch: release/${{ env.NEXT_VERSION }}-next"
+          delete-branch: true
+          title: 'Bump version to ${{ env.NEXT_VERSION }}'
+          labels: |
+            release
+          add-paths: |
+            version.config
+            sql/updates/*.sql
+            sql/CMakeLists.txt
+            .unreleased/*
+
+      # Create `2.XX.x` release branch of `main`
+      #
+      - name: Create Release Branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+        run: |
+          git checkout -b ${{ env.RELEASE_BRANCH }}
+          git push --set-upstream origin ${{ env.RELEASE_BRANCH }}
+
+      - name: Push notification
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+        run: |
+          echo "TODO"
