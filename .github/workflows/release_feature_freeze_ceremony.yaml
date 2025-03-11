@@ -53,7 +53,7 @@ jobs:
         run: |
           ./scripts/merge_changelogs.sh > CHANGELOG_next.md
 
-          RELEASE_NOTE_START=$(grep -n ${{ env.$CURRENT_VERSION }} CHANGELOG.md | cut -d ':' -f 1 | head -1)
+          RELEASE_NOTE_START=$(grep -n ${{ env.CURRENT_VERSION }} CHANGELOG.md | cut -d ':' -f 1 | head -1)
           CHANGELOG_HEADER_LINES=$((RELEASE_NOTE_START - 1))
 
           mv CHANGELOG.md CHANGELOG.md.tmp
