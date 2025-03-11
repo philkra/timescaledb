@@ -51,7 +51,7 @@ jobs:
       #
       - name: Create CHANGELOG
         run: |
-          ./scripts/merge_changelogs.sh > CHANGELOG_"${{ env.NEXT_VERSION }}".md
+          ./scripts/merge_changelogs.sh > CHANGELOG_${{ env.NEXT_VERSION }}.md
 
           RELEASE_NOTE_START=$(grep -n $CURRENT_VERSION CHANGELOG.md | cut -d ':' -f 1 | head -1)
           CHANGELOG_HEADER_LINES=$((RELEASE_NOTE_START - 1))
