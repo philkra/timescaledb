@@ -104,7 +104,7 @@ jobs:
       - name: Deleting all unreleased pr_* , fix_*
         working-directory: .unreleased
         run: |
-          rm -v pr_* fix_*
+          rm -vf pr_* fix_*
 
       # Set only next minor release version in version.config 
       # and create this as a separate PR on `main`
@@ -134,7 +134,7 @@ jobs:
       # Create `2.XX.x` release branch of `main`
       #
       - name: Create Release Branch
-        uses: peterjgrainger/action-create-branch@v2.2.0
+        uses: peterjgrainger/action-create-branch@v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
         with:
