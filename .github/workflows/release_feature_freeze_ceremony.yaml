@@ -63,6 +63,7 @@ jobs:
           CHANGELOG_ENTRIES=$((CHANGELOG_LENGTH-CHANGELOG_HEADER_LINES))
           tail -n "$CHANGELOG_ENTRIES" CHANGELOG.md.tmp >> CHANGELOG.md
           rm CHANGELOG.md.tmp
+          head -n 20 CHANGELOG.md
 
       #- name: Create Pull Request for CHANGELOG
       #  id: cpr_changelog
