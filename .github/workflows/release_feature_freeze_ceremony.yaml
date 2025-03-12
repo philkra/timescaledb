@@ -22,7 +22,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install pip
+<<<<<<< HEAD
           pip install PyGithub requests jinja-cli
+=======
+          pip install PyGithub requests
+>>>>>>> releases/feature-freeze-actions
 
       - name: Set version configuration
         run: |
@@ -30,6 +34,7 @@ jobs:
           CURRENT_VERSION=$(tail -1 version.config | cut -d ' ' -f 3 | cut -d '-' -f 1)
           RELEASE_BRANCH="${NEXT_VERSION/%.0/.x}"
 
+<<<<<<< HEAD
           UPDATE_FILE="$CURRENT_VERSION--$NEXT_VERSION.sql"
           DOWNGRADE_FILE="$NEXT_VERSION--$CURRENT_VERSION.sql"
           LAST_UPDATE_FILE=$(ls sql/updates/*--${CURRENT_VERSION}.sql | head -1 | cut -d '/' -f 3)
@@ -44,13 +49,17 @@ jobs:
           echo "DOWNGRADE_FILE=${DOWNGRADE_FILE}" >> $GITHUB_ENV
           echo "LAST_UPDATE_FILE=${LAST_UPDATE_FILE}" >> $GITHUB_ENV
           echo "LAST_DOWNGRADE_FILE=${LAST_DOWNGRADE_FILE}" >> $GITHUB_ENV
+=======
+          echo "RELEASE_BRANCH=${RELEASE_BRANCH}" >> $GITHUB_ENV
+          echo "CURRENT_VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
+          echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
+>>>>>>> releases/feature-freeze-actions
 
           echo "Release branch: $RELEASE_BRANCH"
 
-      # Generate the CHANGELOG in a separate PR
-      #
-      - name: Create CHANGELOG
+      - name: Generate the CHANGELOG
         run: |
+<<<<<<< HEAD
           ./scripts/merge_changelogs.sh > CHANGELOG_next.md
 
           RELEASE_NOTE_START=$(grep -n ${{ env.CURRENT_VERSION }} CHANGELOG.md | cut -d ':' -f 1 | head -1)
@@ -77,10 +86,30 @@ jobs:
       #      release
       #    add-paths: |
       #      CHANGELOG.md
+=======
+          ./scripts/changelog/generate.sh 
+          head -n 10 CHANGELOG.md
 
-      - name: Generate upgrade and downgrade files
-        working-directory: ./sql/updates
+      # Generate the CHANGELOG and submit it in a separate PR
+      #
+      - name: Create Pull Request for CHANGELOG
+        id: cpr_changelog
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+          branch: release/${{ env.NEXT_VERSION }}-changelog"
+          delete-branch: true
+          title: 'CHANGELOG for ${{ env.NEXT_VERSION }}'
+          labels: |
+            release
+            force-auto-backport
+          add-paths: |
+            CHANGELOG.md
+>>>>>>> releases/feature-freeze-actions
+
+      - name: Curate minor release artefacts
         run: |
+<<<<<<< HEAD
           cp latest-dev.sql "${{ env.UPDATE_FILE }}"
           cp reverse-dev.sql "${{ env.DOWNGRADE_FILE }}"
 
@@ -114,6 +143,9 @@ jobs:
           sed -i.bak "s/${{ env.CURRENT_VERSION }}/${{ env.NEXT_VERSION }}/g" version.config
           rm version.config.bak
           cat version.config
+=======
+          ./scripts/release/curate_minor_release_artefacts.sh
+>>>>>>> releases/feature-freeze-actions
 
       - name: Create Pull Request for next version changes
         id: cpr_next_version_changes
@@ -139,9 +171,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
         with:
           branch: '${{ env.RELEASE_BRANCH }}'
+<<<<<<< HEAD
 
       - name: Push notification
         env:
           GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
         run: |
           echo "TODO"
+=======
+>>>>>>> releases/feature-freeze-actions
