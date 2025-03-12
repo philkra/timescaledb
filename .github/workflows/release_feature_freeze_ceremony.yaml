@@ -50,7 +50,7 @@ jobs:
           token: ${{ secrets.ORG_AUTOMATION_TOKEN }}
           branch: release/${{ env.NEXT_VERSION }}-changelog"
           delete-branch: true
-          title: 'Changelog for ${{ env.NEXT_VERSION }}'
+          title: 'CHANGELOG for ${{ env.NEXT_VERSION }}'
           labels: |
             release
             force-auto-backport
@@ -85,8 +85,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
         with:
           branch: '${{ env.RELEASE_BRANCH }}'
-
-      - name: Create backport label
-        env:
-          GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
-        run: gh label create "backport-${{ env.RELEASE_BRANCH }}" --color ededed
