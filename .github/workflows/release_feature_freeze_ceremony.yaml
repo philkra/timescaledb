@@ -47,36 +47,26 @@ jobs:
 
           echo "Release branch: $RELEASE_BRANCH"
 
-      # Generate the CHANGELOG in a separate PR
-      #
-      - name: Create CHANGELOG
+      - name: Generate the CHANGELOG
         run: |
-          ./scripts/merge_changelogs.sh > CHANGELOG_next.md
+          ./scripts/changelog/generate.sh 
+          head -n 10 CHANGELOG.md
 
-          RELEASE_NOTE_START=$(grep -n ${{ env.CURRENT_VERSION }} CHANGELOG.md | cut -d ':' -f 1 | head -1)
-          CHANGELOG_HEADER_LINES=$((RELEASE_NOTE_START - 1))
-
-          mv CHANGELOG.md CHANGELOG.md.tmp
-          head -n $CHANGELOG_HEADER_LINES CHANGELOG.md.tmp > CHANGELOG.md
-          cat CHANGELOG_next.md >> CHANGELOG.md
-          CHANGELOG_LENGTH=$(wc -l CHANGELOG.md.tmp | cut -d ' ' -f 5)
-          CHANGELOG_ENTRIES=$((CHANGELOG_LENGTH-CHANGELOG_HEADER_LINES))
-          tail -n "$CHANGELOG_ENTRIES" CHANGELOG.md.tmp >> CHANGELOG.md
-          rm CHANGELOG.md.tmp
-          head -n 20 CHANGELOG.md
-
-      #- name: Create Pull Request for CHANGELOG
-      #  id: cpr_changelog
-      #  uses: peter-evans/create-pull-request@v7
-      #  with:
-      #    token: ${{ secrets.ORG_AUTOMATION_TOKEN }}
-      #    branch: release/${{ env.NEXT_VERSION }}-changelog"
-      #    delete-branch: true
-      #    title: 'Changelog for ${{ env.NEXT_VERSION }}'
-      #    labels: |
-      #      release
-      #    add-paths: |
-      #      CHANGELOG.md
+      # Generate the CHANGELOG and submit it in a separate PR
+      #
+      - name: Create Pull Request for CHANGELOG
+        id: cpr_changelog
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+          branch: release/${{ env.NEXT_VERSION }}-changelog"
+          delete-branch: true
+          title: 'Changelog for ${{ env.NEXT_VERSION }}'
+          labels: |
+            release
+            force-auto-backport
+          add-paths: |
+            CHANGELOG.md
 
       - name: Generate upgrade and downgrade files
         working-directory: ./sql/updates
