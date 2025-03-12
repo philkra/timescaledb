@@ -98,20 +98,22 @@ jobs:
 
           sed -i.bak "s/FILE reverse-dev.sql)/FILE ${{ env.DOWNGRADE_FILE }})/g" CMakeLists.txt
 
+      # Remove the CHANGELOG generating
+      # Fresh start for next version
+      #
       - name: Deleting all unreleased pr_* , fix_*
         working-directory: .unreleased
         run: |
-          git rm pr_* fix_*
+          rm pr_* fix_*
 
       # Set only next minor release version in version.config 
       # and create this as a separate PR on `main`
       # 
       - name: Set next minor release version.config
-        env:
-          GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
         run: |
           sed -i.bak "s/${{ env.CURRENT_VERSION }}/${{ env.NEXT_VERSION }}/g" version.config
           rm version.config.bak
+          cat version.config
 
       - name: Create Pull Request for next version changes
         id: cpr_next_version_changes
