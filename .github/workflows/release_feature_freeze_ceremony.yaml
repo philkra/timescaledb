@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install pip
-          pip install PyGithub requests jinja-cli
+          pip install PyGithub requests
 
       - name: Set version configuration
         run: |
