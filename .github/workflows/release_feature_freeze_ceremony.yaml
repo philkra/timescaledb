@@ -64,18 +64,18 @@ jobs:
           tail -n "$CHANGELOG_ENTRIES" CHANGELOG.md.tmp >> CHANGELOG.md
           rm CHANGELOG.md.tmp
 
-      - name: Create Pull Request for CHANGELOG
-        id: cpr_changelog
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.ORG_AUTOMATION_TOKEN }}
-          branch: release/${{ env.NEXT_VERSION }}-changelog"
-          delete-branch: true
-          title: 'Changelog for ${{ env.NEXT_VERSION }}'
-          labels: |
-            release
-          add-paths: |
-            CHANGELOG.md
+      #- name: Create Pull Request for CHANGELOG
+      #  id: cpr_changelog
+      #  uses: peter-evans/create-pull-request@v7
+      #  with:
+      #    token: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+      #    branch: release/${{ env.NEXT_VERSION }}-changelog"
+      #    delete-branch: true
+      #    title: 'Changelog for ${{ env.NEXT_VERSION }}'
+      #    labels: |
+      #      release
+      #    add-paths: |
+      #      CHANGELOG.md
 
       - name: Generate upgrade and downgrade files
         working-directory: ./sql/updates
