@@ -1,78 +1,105 @@
-name: Nightly - Update smoke test on release branch
-
-# Requires private GitHub action to deploy the last commit
-# from the release branch to the QA service in Cloud
-
-"on":
-  schedule:
-    - cron: '0 0 * * *'
+name: Release - Feature Freeze Ceremony
+on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - .github/workflows/nightly_cloud_smoke_test.yaml
+
+# The workflow needs the permission to push branches
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  update_test:
-    # We'll run the test against an instance in the cloud
-    # The previous version of TimescaleDB is installed
-    # and then we upgrade to the current version
-    name: Cloud - Update test smoke 
+  release-feature-freeze-ceremony:
+    name: Release - Feature Freeze & CHANGELOG
     runs-on: timescaledb-runner-arm64
+    environment:
+      name: Release Ceremonies
+
     steps:
-    - name: Checkout TimescaleDB
-      uses: actions/checkout@v4
+      - name: Checkout TimescaleDB
+        uses: actions/checkout@v4
 
-    - name: Install Dependencies
-      # we want the right version of Postgres for handling any dump file
-      run: |
-        sudo apt-get update
-        sudo apt-get install gnupg postgresql-common 
-        yes | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
-        sudo apt-get update
-        sudo apt-get install postgresql-17 
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install pip
+          pip install PyGithub requests
 
-    - name: Read versions
-      # Get two of the version parameters for test_update_smoke.sh
-      id: versions
-      run: |
-        # Read current version of TimescaleDB from version.config
-        # version will only be a proper version in a release branch 
-        # so we use previous_version as fallback for main
-        if grep '^version = [0-9.]\+$' version.config; then
-          version=$(sed -ne 's!^version = !!p' version.config)
-        else
-          version=$(sed -ne 's!^previous_version = !!p' version.config)
-        fi
-        echo "version=${version}" >>$GITHUB_OUTPUT
-        # Now get the previous version
-        prev_version=$(wget --quiet -O - \
-        https://raw.githubusercontent.com/timescale/timescaledb/${version}/version.config \
-          | sed -ne 's!previous_version = !!p')
-        echo "prev_version=${prev_version}" >>$GITHUB_OUTPUT
-        # And report what we found
-        echo "version=${version}"  "prev_version=${prev_version}"
+      # Read the next version and build the next versions
+      - name: Set version configuration
+        run: |
+          NEXT_VERSION=$(head -1 version.config | cut -d ' ' -f 3 | cut -d '-' -f 1)
+          CURRENT_VERSION=$(tail -1 version.config | cut -d ' ' -f 3 | cut -d '-' -f 1)
+          RELEASE_BRANCH="${NEXT_VERSION/%.0/.x}"
 
-    - name: Update smoke 
-      # Now run the test.  Currently the cloud instance is always up.
-      # We might want to have a more flexible approach
-      run: |
-        PATH="/usr/lib/postgresql/17/bin:$PATH"
-        ./scripts/test_update_smoke.sh \
-            ${{ steps.versions.outputs.prev_version }} \
-            ${{ steps.versions.outputs.version }} \
-            "${{ secrets.DB_TEAM_QA_SERVICE_CONNECTION_STRING }}"
+          echo "RELEASE_BRANCH=${RELEASE_BRANCH}" >> $GITHUB_ENV
+          echo "CURRENT_VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
+          echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
 
-    - name: Show logs
-      if: always()
-      run: |
-        ls -l /tmp/smoketest*/*
-        cat /tmp/smoketest*/*
-        
-    - name: Upload Artifacts
-      # Save the logs, so if there is a failure we'll have a better
-      # chance to understand what went wrong.
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: Cloud Update test smoke
-        path: /tmp/smoketest*/* 
+          echo "Release branch: $RELEASE_BRANCH"
+
+      # Create `2.XX.x` release branch of `main`
+      # Release branch is a dependency for the next steps
+      - name: Create Release Branch
+        uses: peterjgrainger/action-create-branch@v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+        with:
+          branch: '${{ env.RELEASE_BRANCH }}'
+
+      - name: Generate the CHANGELOG
+        run: |
+          ./scripts/changelog/generate.sh 
+          head -n 19 CHANGELOG.md | tail -n 10
+
+      # Generate the CHANGELOG and submit it in a separate PR
+      - name: Create Pull Request for CHANGELOG
+        id: cpr_changelog
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+          branch: "release/${{ env.NEXT_VERSION }}--changelog"
+          base: ${{ env.RELEASE_BRANCH }}
+          delete-branch: true
+          reviewers: |
+            @philkra
+            @brandonpurcell-dev
+            @atovpeko
+          title: "Release ${{ env.NEXT_VERSION }}"
+          labels: |
+            release
+            changelog
+          add-paths: |
+            .unreleased/*
+            CHANGELOG.md
+
+      - name: "Validate CHANGELOG PR"
+        if: ${{ steps.cpr_changelog.outputs.pull-request-number }}
+        run: |
+          echo "Pull Request: ${{ steps.cpr_changelog.outputs.pull-request-url }}"
+
+      # Rework version.config and up & down grade scripts
+      - name: Curate minor release artefacts
+        run: |
+          ./scripts/release/build_release_artefacts.sh ${{ env.CURRENT_VERSION }} ${{ env.NEXT_VERSION }}
+
+      # Submit PR for new version changes 
+      - name: Create Pull Request for next version changes on release branch
+        id: cpr_next_version_changes
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+          branch: "release/${{ env.NEXT_VERSION }}--next"
+          base: ${{ env.RELEASE_BRANCH }}
+          delete-branch: true
+          title: "Bump version to ${{ env.NEXT_VERSION }}"
+          labels: |
+            release
+          add-paths: |
+            version.config
+            sql/updates/*.sql
+            sql/CMakeLists.txt
+
+      - name: "Validate next version PR"
+        if: ${{ steps.cpr_next_version_changes.outputs.pull-request-number }}
+        run: |
+          echo "Pull Request: ${{ steps.cpr_next_version_changes.outputs.pull-request-url }}"
