@@ -49,6 +49,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install postgresql-17 
 
+  test:
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      # run sequentially
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+      fail-fast: true
+      max-parallel: 1
+    steps:
       - name: Checkout TimescaleDB
         uses: actions/checkout@v4
 
@@ -64,16 +73,7 @@ jobs:
             version=$(sed -ne 's!^previous_version = !!p' version.config)
           fi
           echo "version=${version}" >>$GITHUB_OUTPUT
-
-  test:
-    needs: generate-matrix
-    runs-on: ubuntu-latest
-    strategy:
-      # run sequentially
-      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
-      fail-fast: true
-      max-parallel: 1
-    steps:
+    
       - name: "Run update smoke test with v${{ matrix.version }} to ${{ steps.versions.outputs.version }}"
         # Now run the test.  Currently the cloud instance is always up.
         # We might want to have a more flexible approach
