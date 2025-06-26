@@ -45,8 +45,7 @@ jobs:
     needs: generate-matrix
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     steps:
       - name: Checkout TimescaleDB
         uses: actions/checkout@v4
