@@ -26,7 +26,6 @@ jobs:
             | jq -r '.[].tag_name')
           
           # Convert to JSON array format for matrix
-          #matrix_json=$(echo "$releases" | jq -R -s -c 'split("\n") | map(select(length > 0))')
           matrix_json=$(echo "$releases" | jq -R -s -c 'split("\n") | map(select(length > 0)) | .[1:]')
           echo "releases=$matrix_json" >> $GITHUB_OUTPUT
           
@@ -83,9 +82,13 @@ jobs:
               ${{ matrix.version }} \
               ${{ steps.versions.outputs.version }} \
               "${{ secrets.DB_TEAM_QA_SERVICE_CONNECTION_STRING }}"
+      
+      - name: Show logs
+        if: always()
+        run: |
           ls -l /tmp/smoketest*/*
           cat /tmp/smoketest*/*
-          
+        
       - name: Upload Artifacts
         # Save the logs, so if there is a failure we'll have a better
         # chance to understand what went wrong.
