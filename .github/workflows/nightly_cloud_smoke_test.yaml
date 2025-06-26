@@ -82,10 +82,6 @@ jobs:
               ${{ matrix.version }} \
               ${{ steps.versions.outputs.version }} \
               "${{ secrets.DB_TEAM_QA_SERVICE_CONNECTION_STRING }}"
-  
-      - name: Show logs
-        if: always()
-        run: |
           ls -l /tmp/smoketest*/*
           cat /tmp/smoketest*/*
           
