@@ -35,11 +35,14 @@ jobs:
           echo "CURRENT_VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
           echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
 
+
           echo "Release branch: $RELEASE_BRANCH"
 
       # Create `2.XX.x` release branch of `main`
       # Release branch is a dependency for the next steps
+      # only execute this step on .0 releases
       - name: Create Release Branch
+        if: ${{ endsWith('${{ env.NEXT_VERSION }}', '.0') }}
         uses: peterjgrainger/action-create-branch@v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
