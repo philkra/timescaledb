@@ -37,9 +37,20 @@ jobs:
 
           echo "Release branch: $RELEASE_BRANCH"
 
+      - name: Check if release branch exists
+        id: check_branch
+        run: |
+          if git ls-remote --heads origin ${{ env.RELEASE_BRANCH }} | grep -q ${{ env.RELEASE_BRANCH }}; then
+            echo "branch_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "branch_exists=false" >> $GITHUB_OUTPUT
+          fi
+
       # Create `2.XX.x` release branch of `main`
       # Release branch is a dependency for the next steps
+      # only execute this step on .0 releases
       - name: Create Release Branch
+        if: steps.check_branch.outputs.branch_exists == 'false'
         uses: peterjgrainger/action-create-branch@v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
@@ -60,6 +71,10 @@ jobs:
           branch: "release/${{ env.NEXT_VERSION }}--changelog"
           base: ${{ env.RELEASE_BRANCH }}
           delete-branch: true
+          reviewers: |
+            @philkra
+            @brandonpurcell-dev
+            @atovpeko
           title: "Release ${{ env.NEXT_VERSION }}"
           labels: |
             release
