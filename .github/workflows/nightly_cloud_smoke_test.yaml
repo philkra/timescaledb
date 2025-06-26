@@ -36,8 +36,11 @@ jobs:
       - name: Set matrix output
         id: set-matrix
         run: |
-          matrix='{"version": ${{ steps.fetch-releases.outputs.releases }}}'
+          releases='${{ steps.fetch-releases.outputs.releases }}'
+          matrix=$(echo "$releases" | jq '{"version": .[1:]}')
+          #matrix='{"version": ${{ steps.fetch-releases.outputs.releases }}}'
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
+          echo $matrix
 
       - name: Install Dependencies
         # we want the right version of Postgres for handling any dump file
