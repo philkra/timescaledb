@@ -81,7 +81,7 @@ jobs:
         # Download the script to avoid checking out the whole repo
         run: |
           curl --fail -o test_update_smoke.sh https://raw.githubusercontent.com/timescale/timescaledb/refs/heads/main/scripts/test_update_smoke.sh
-          ls -lha
+          chmod +x test_update_smoke.sh
           PATH="/usr/lib/postgresql/17/bin:$PATH"
           ./test_update_smoke.sh \
               ${{ matrix.version }} \
