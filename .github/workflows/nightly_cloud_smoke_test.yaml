@@ -67,7 +67,7 @@ jobs:
         run: |
           # Read current version of TimescaleDB from version.config
           # version will only be a proper version in a release branch 
-          wget --quiet -O - https://raw.githubusercontent.com/timescale/timescaledb/refs/heads/main/version.config
+          curl --fail -o version.config https://raw.githubusercontent.com/timescale/timescaledb/refs/heads/main/version.config
           if grep '^version = [0-9.]\+$' version.config; then
             version=$(sed -ne 's!^version = !!p' version.config)
           else
@@ -80,7 +80,7 @@ jobs:
         # We might want to have a more flexible approach
         # Download the script to avoid checking out the whole repo
         run: |
-          wget --quiet -O - https://raw.githubusercontent.com/timescale/timescaledb/refs/heads/main/scripts/test_update_smoke.sh
+          curl --fail -o scripts/test_update_smoke.sh https://raw.githubusercontent.com/timescale/timescaledb/refs/heads/main/scripts/test_update_smoke.sh
           ls -lha
           PATH="/usr/lib/postgresql/17/bin:$PATH"
           ./scripts/test_update_smoke.sh \
