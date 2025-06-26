@@ -26,7 +26,7 @@ jobs:
             | jq -r '.[].tag_name')
           
           # Convert to JSON array format for matrix
-          matrix_json=$(echo "$releases" | jq -R -s -c 'split("\n") | map(select(length > 0)) | .[1:]')
+          matrix_json=$(echo "$releases" | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "releases=$matrix_json" >> $GITHUB_OUTPUT
           
           # Also output for debugging
