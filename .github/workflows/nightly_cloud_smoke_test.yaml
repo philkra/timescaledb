@@ -75,7 +75,6 @@ jobs:
       - name: "Run update smoke test with v${{ matrix.version }} to ${{ steps.versions.outputs.version }}"
         # Now run the test.  Currently the cloud instance is always up.
         # only run the test if the versions are not equal
-        if: ${{ matrix.version != steps.versions.outputs.version }}
         run: |
           PATH="/usr/lib/postgresql/17/bin:$PATH"
           ./scripts/test_update_smoke.sh \
