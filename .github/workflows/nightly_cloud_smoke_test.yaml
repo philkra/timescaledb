@@ -29,6 +29,24 @@ jobs:
             })).data.map(ref => ref.ref.replace('refs/tags/', '')).sort().reverse().slice(0, 10);
             core.setOutput('tags', JSON.stringify(tags));
 
+  build:
+    needs: get_tags
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ${{ fromJson(needs.get_tags.outputs.tags) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Build with tag
+        run: |
+          echo "Building with tag ${{ matrix.version }}"
+          # Your build command here, using ${{ matrix.version }} as needed.
+
   set_up:
     needs: get_tags
     runs-on: ubuntu-latest
