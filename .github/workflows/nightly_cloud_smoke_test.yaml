@@ -40,6 +40,15 @@ jobs:
           matrix='{"version": ${{ steps.fetch-releases.outputs.releases }}}'
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
+      - name: Install Dependencies
+        # we want the right version of Postgres for handling any dump file
+        run: |
+          sudo apt-get update
+          sudo apt-get install gnupg postgresql-common 
+          yes | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+          sudo apt-get update
+          sudo apt-get install postgresql-17 
+
   build:
     needs: generate-matrix
     runs-on: ubuntu-latest
@@ -51,15 +60,6 @@ jobs:
     steps:
       - name: Checkout TimescaleDB
         uses: actions/checkout@v4
-
-      - name: Install Dependencies
-        # we want the right version of Postgres for handling any dump file
-        run: |
-          sudo apt-get update
-          sudo apt-get install gnupg postgresql-common 
-          yes | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
-          sudo apt-get update
-          sudo apt-get install postgresql-17 
 
       - name: Read versions
         # Get two of the version parameters for test_update_smoke.sh
@@ -74,7 +74,7 @@ jobs:
           fi
           echo "version=${version}" >>$GITHUB_OUTPUT
 
-      - name: "Update smoke test"
+      - name: "Run update smoke test with v${{ matrix.version }} to ${{ steps.versions.outputs.version }}"
         # Now run the test.  Currently the cloud instance is always up.
         # We might want to have a more flexible approach
         # Download the script to avoid checking out the whole repo
