@@ -49,8 +49,8 @@ jobs:
       fail-fast: true
       max-parallel: 1
     steps:
-      #- name: Checkout TimescaleDB
-      #  uses: actions/checkout@v4
+      - name: Checkout TimescaleDB
+        uses: actions/checkout@v4
 
       - name: Install Dependencies
         # we want the right version of Postgres for handling any dump file
@@ -67,7 +67,6 @@ jobs:
         run: |
           # Read current version of TimescaleDB from version.config
           # version will only be a proper version in a release branch 
-          curl --fail -o version.config https://raw.githubusercontent.com/timescale/timescaledb/refs/heads/main/version.config
           if grep '^version = [0-9.]\+$' version.config; then
             version=$(sed -ne 's!^version = !!p' version.config)
           else
@@ -80,9 +79,6 @@ jobs:
         # We might want to have a more flexible approach
         # Download the script to avoid checking out the whole repo
         run: |
-          mkdir scripts
-          curl --fail -o ./scripts/test_update_smoke.sh https://raw.githubusercontent.com/timescale/timescaledb/refs/heads/main/scripts/test_update_smoke.sh
-          chmod +x ./scripts/test_update_smoke.sh
           PATH="/usr/lib/postgresql/17/bin:$PATH"
           ./scripts/test_update_smoke.sh \
               ${{ matrix.version }} \
