@@ -44,7 +44,10 @@ jobs:
     needs: generate-matrix
     runs-on: ubuntu-latest
     strategy:
+      # run sequentially
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+      fail-fast: true
+      max-parallel: 1
     steps:
       - name: Checkout TimescaleDB
         uses: actions/checkout@v4
