@@ -40,15 +40,6 @@ jobs:
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
           echo $matrix
 
-      - name: Install Dependencies
-        # we want the right version of Postgres for handling any dump file
-        run: |
-          sudo apt-get update
-          sudo apt-get install gnupg postgresql-common 
-          yes | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
-          sudo apt-get update
-          sudo apt-get install postgresql-17 
-
   test-version:
     needs: generate-matrix
     runs-on: ubuntu-latest
@@ -59,6 +50,15 @@ jobs:
     steps:
       - name: Checkout TimescaleDB
         uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        # we want the right version of Postgres for handling any dump file
+        run: |
+          sudo apt-get update
+          sudo apt-get install gnupg postgresql-common 
+          yes | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+          sudo apt-get update
+          sudo apt-get install postgresql-17 
 
       - name: Read versions
         # Get two of the version parameters for test_update_smoke.sh
