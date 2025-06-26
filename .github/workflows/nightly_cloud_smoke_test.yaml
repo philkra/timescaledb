@@ -23,8 +23,8 @@ jobs:
         with:
           script: |
             const tags = (await github.rest.git.listMatchingRefs({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner: "timescale",
+              repo: "timescaledb",
               ref: "tags"
             })).data.map(ref => ref.ref.replace('refs/tags/', '')).sort().reverse().slice(0, 10);
             core.setOutput('tags', JSON.stringify(tags));
