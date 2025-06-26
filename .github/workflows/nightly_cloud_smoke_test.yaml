@@ -80,10 +80,10 @@ jobs:
         # We might want to have a more flexible approach
         # Download the script to avoid checking out the whole repo
         run: |
-          curl --fail -o scripts/test_update_smoke.sh https://raw.githubusercontent.com/timescale/timescaledb/refs/heads/main/scripts/test_update_smoke.sh
+          curl --fail -o test_update_smoke.sh https://raw.githubusercontent.com/timescale/timescaledb/refs/heads/main/scripts/test_update_smoke.sh
           ls -lha
           PATH="/usr/lib/postgresql/17/bin:$PATH"
-          ./scripts/test_update_smoke.sh \
+          ./test_update_smoke.sh \
               ${{ matrix.version }} \
               ${{ steps.versions.outputs.version }} \
               "${{ secrets.DB_TEAM_QA_SERVICE_CONNECTION_STRING }}"
