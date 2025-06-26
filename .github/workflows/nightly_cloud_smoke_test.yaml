@@ -12,12 +12,26 @@ name: Nightly - Update smoke test on release branch
       - .github/workflows/nightly_cloud_smoke_test.yaml
 
 jobs:
-  update_test:
-    # We'll run the test against an instance in the cloud
-    # The previous version of TimescaleDB is installed
-    # and then we upgrade to the current version
-    name: Cloud - Update test smoke 
-    runs-on: timescaledb-runner-arm64
+  get_tags:
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.get_tags.outputs.tags }}
+    steps:
+      - name: Get last 10 tags
+        uses: actions/github-script@v7
+        id: get_tags
+        with:
+          script: |
+            const tags = (await github.rest.git.listMatchingRefs({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "tags"
+            })).data.map(ref => ref.ref.replace('refs/tags/', '')).sort().reverse().slice(0, 10);
+            core.setOutput('tags', JSON.stringify(tags));
+
+  set_up:
+    needs: get_tags
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout TimescaleDB
       uses: actions/checkout@v4
@@ -44,21 +58,24 @@ jobs:
           version=$(sed -ne 's!^previous_version = !!p' version.config)
         fi
         echo "version=${version}" >>$GITHUB_OUTPUT
-        # Now get the previous version
-        prev_version=$(wget --quiet -O - \
-        https://raw.githubusercontent.com/timescale/timescaledb/${version}/version.config \
-          | sed -ne 's!previous_version = !!p')
-        echo "prev_version=${prev_version}" >>$GITHUB_OUTPUT
-        # And report what we found
-        echo "version=${version}"  "prev_version=${prev_version}"
 
-    - name: Update smoke 
+  update_test:
+    # We'll run the test against an instance in the cloud
+    # The previous version of TimescaleDB is installed
+    # and then we upgrade to the current version
+    needs: set_up
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ${{ fromJson(needs.get_tags.outputs.tags) }}
+    steps:
+    - name: "Update smoke test: ${{ matrix.version }} --> ${{ steps.versions.outputs.version }}"
       # Now run the test.  Currently the cloud instance is always up.
       # We might want to have a more flexible approach
       run: |
         PATH="/usr/lib/postgresql/17/bin:$PATH"
         ./scripts/test_update_smoke.sh \
-            ${{ steps.versions.outputs.prev_version }} \
+            ${{ matrix.version }} \
             ${{ steps.versions.outputs.version }} \
             "${{ secrets.DB_TEAM_QA_SERVICE_CONNECTION_STRING }}"
 
