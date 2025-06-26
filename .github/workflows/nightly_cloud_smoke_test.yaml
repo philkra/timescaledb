@@ -26,7 +26,7 @@ jobs:
               owner: "timescale",
               repo: "timescaledb",
               ref: "tags"
-            })).data.map(ref => ref.ref.replace('refs/tags/', '')).sort().reverse().slice(0, 10);
+            })).data.map(ref => ref.ref.replace('refs/tags/', '')).sort().slice(0, 10);
             core.setOutput('tags', JSON.stringify(tags));
 
   build:
@@ -36,78 +36,53 @@ jobs:
       matrix:
         version: ${{ fromJson(needs.get_tags.outputs.tags) }}
     steps:
-      - name: Checkout code
+      - name: Checkout TimescaleDB
         uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - name: Build with tag
+
+      - name: Install Dependencies
+        # we want the right version of Postgres for handling any dump file
         run: |
-          echo "Building with tag ${{ matrix.version }}"
-          # Your build command here, using ${{ matrix.version }} as needed.
+          sudo apt-get update
+          sudo apt-get install gnupg postgresql-common 
+          yes | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+          sudo apt-get update
+          sudo apt-get install postgresql-17 
 
-  set_up:
-    needs: get_tags
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout TimescaleDB
-      uses: actions/checkout@v4
+      - name: Read versions
+        # Get two of the version parameters for test_update_smoke.sh
+        id: versions
+        run: |
+          # Read current version of TimescaleDB from version.config
+          # version will only be a proper version in a release branch 
+          # so we use previous_version as fallback for main
+          if grep '^version = [0-9.]\+$' version.config; then
+            version=$(sed -ne 's!^version = !!p' version.config)
+          else
+            version=$(sed -ne 's!^previous_version = !!p' version.config)
+          fi
+          echo "version=${version}" >>$GITHUB_OUTPUT
 
-    - name: Install Dependencies
-      # we want the right version of Postgres for handling any dump file
-      run: |
-        sudo apt-get update
-        sudo apt-get install gnupg postgresql-common 
-        yes | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
-        sudo apt-get update
-        sudo apt-get install postgresql-17 
-
-    - name: Read versions
-      # Get two of the version parameters for test_update_smoke.sh
-      id: versions
-      run: |
-        # Read current version of TimescaleDB from version.config
-        # version will only be a proper version in a release branch 
-        # so we use previous_version as fallback for main
-        if grep '^version = [0-9.]\+$' version.config; then
-          version=$(sed -ne 's!^version = !!p' version.config)
-        else
-          version=$(sed -ne 's!^previous_version = !!p' version.config)
-        fi
-        echo "version=${version}" >>$GITHUB_OUTPUT
-
-  update_test:
-    # We'll run the test against an instance in the cloud
-    # The previous version of TimescaleDB is installed
-    # and then we upgrade to the current version
-    needs: set_up
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        version: ${{ fromJson(needs.get_tags.outputs.tags) }}
-    steps:
-    - name: "Update smoke test: ${{ matrix.version }} --> ${{ steps.versions.outputs.version }}"
-      # Now run the test.  Currently the cloud instance is always up.
-      # We might want to have a more flexible approach
-      run: |
-        PATH="/usr/lib/postgresql/17/bin:$PATH"
-        ./scripts/test_update_smoke.sh \
-            ${{ matrix.version }} \
-            ${{ steps.versions.outputs.version }} \
-            "${{ secrets.DB_TEAM_QA_SERVICE_CONNECTION_STRING }}"
-
-    - name: Show logs
-      if: always()
-      run: |
-        ls -l /tmp/smoketest*/*
-        cat /tmp/smoketest*/*
-        
-    - name: Upload Artifacts
-      # Save the logs, so if there is a failure we'll have a better
-      # chance to understand what went wrong.
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: Cloud Update test smoke
-        path: /tmp/smoketest*/* 
+      - name: "Update smoke test"
+        # Now run the test.  Currently the cloud instance is always up.
+        # We might want to have a more flexible approach
+        run: |
+          PATH="/usr/lib/postgresql/17/bin:$PATH"
+          ./scripts/test_update_smoke.sh \
+              ${{ matrix.version }} \
+              ${{ steps.versions.outputs.version }} \
+              "${{ secrets.DB_TEAM_QA_SERVICE_CONNECTION_STRING }}"
+  
+      - name: Show logs
+        if: always()
+        run: |
+          ls -l /tmp/smoketest*/*
+          cat /tmp/smoketest*/*
+          
+      - name: Upload Artifacts
+        # Save the logs, so if there is a failure we'll have a better
+        # chance to understand what went wrong.
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cloud Update test smoke
+          path: /tmp/smoketest*/*
