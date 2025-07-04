@@ -6,12 +6,12 @@ name: Nightly - Update smoke test on release branch
 # from the release branch to the QA service in Cloud
 
 "on":
-  schedule:
-    - cron: '0 0 * * *'
+#  schedule:
+#    - cron: '0 0 * * *'
   workflow_dispatch:
-  pull_request:
-    paths:
-      - .github/workflows/nightly_cloud_smoke_test.yaml
+#  pull_request:
+#    paths:
+#      - .github/workflows/nightly_cloud_smoke_test.yaml
 
 jobs:
   get-next-version:
@@ -89,7 +89,7 @@ jobs:
           PATH="/usr/lib/postgresql/17/bin:$PATH"
           ./scripts/test_update_smoke.sh \
               ${{ matrix.version }} \
-              ${{ steps.versions.outputs.version }} \
+              ${{needs.get-next-version.outputs.next_version}} \
               "${{ secrets.DB_TEAM_QA_SERVICE_CONNECTION_STRING }}"
       
       - name: Show logs
