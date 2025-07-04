@@ -121,7 +121,7 @@ cd ${BASE_DIR}/test/sql/updates
 $PSQL -c '\conninfo'
 
 # disable poor compression ratio warning for this test to avoid cluttering the logs
-$PSQL -c "SET enable_compression_ratio_warnings TO off"
+$PSQL -c "SET timescaledb.enable_compression_ratio_warnings TO false"
 
 # shellcheck disable=SC2207 # Prefer mapfile or read -a to split command output (or quote to avoid splitting).
 missing=($(missing_versions $CURRENT_VERSION $NEXT_VERSION))
