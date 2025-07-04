@@ -1,15 +1,17 @@
 name: Nightly - Update smoke test on release branch
 
-# Requires private GitHub action to deploy the last commit
+# QA: run the upgrade smoke tests with the last 10 releases 
+# against the the next version.
+# Requires upstream GitHub action to deploy the last commit
 # from the release branch to the QA service in Cloud
 
 "on":
 #  schedule:
 #    - cron: '0 0 * * *'
   workflow_dispatch:
-  pull_request:
-    paths:
-      - .github/workflows/nightly_cloud_smoke_test.yaml
+#  pull_request:
+#    paths:
+#      - .github/workflows/nightly_cloud_smoke_test.yaml
 
 jobs:
   get-next-version:
@@ -27,12 +29,13 @@ jobs:
           sort -V | \
           tail -n1)
         echo "current release branch: ${RELEASE_BRANCH}"
-        wget -O version.config "https://raw.githubusercontent.com/timescale/timescaledb/refs/heads/${RELEASE_BRANCH}/version.config"
-        NEXT_VERSION=$(grep "${1}" version.config | awk '{print $3}' | sed 's/-dev//')
-        echo "next version: ${NEXT_VERSION}"
+        curl --fail -o version.config "https://raw.githubusercontent.com/timescale/timescaledb/refs/heads/${RELEASE_BRANCH}/version.config"
+        NEXT_VERSION=$(head -1 version.config | cut -d ' ' -f 3 | cut -d '-' -f 1)
+        echo "next version: ${NEXT_VERSION} .."
         echo "next_version=${NEXT_VERSION}" >> "$GITHUB_OUTPUT"
 
   generate-matrix:
+    needs: get-next-version
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
