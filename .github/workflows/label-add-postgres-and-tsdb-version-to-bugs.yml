@@ -1,4 +1,4 @@
-name: Auto-label Bug issues with TimescaleDB & Postgres versions
+name: Auto-label Bug tickets with TimescaleDB & Postgres versions
 
 on:
   issues:
@@ -53,12 +53,14 @@ jobs:
       - name: Extract versions from issue body
         id: extract-versions
         uses: actions/github-script@v7
+        env:
+          ISSUE_DATA: ${{ steps.get-issue.outputs.result }}
         with:
           script: |
             let issueBody, issueNumber;
             
             if (context.eventName === 'workflow_dispatch') {
-              const issueData = JSON.parse(`${{ steps.get-issue.outputs.result }}`);
+              const issueData = JSON.parse(process.env.ISSUE_DATA);
               issueBody = issueData.issueBody;
               issueNumber = issueData.issueNumber;
             } else {
@@ -125,9 +127,11 @@ jobs:
       - name: Create and add TimescaleDB version label
         if: fromJson(steps.extract-versions.outputs.result).timescaledb.found == true
         uses: actions/github-script@v7
+        env:
+          RESULTS: ${{ steps.extract-versions.outputs.result }}
         with:
           script: |
-            const results = ${{ steps.extract-versions.outputs.result }};
+            const results = JSON.parse(process.env.RESULTS);
             const labelName = results.timescaledb.label;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -170,9 +174,11 @@ jobs:
       - name: Create and add PostgreSQL version label
         if: fromJson(steps.extract-versions.outputs.result).postgres.found == true
         uses: actions/github-script@v7
+        env:
+          RESULTS: ${{ steps.extract-versions.outputs.result }}
         with:
           script: |
-            const results = ${{ steps.extract-versions.outputs.result }};
+            const results = JSON.parse(process.env.RESULTS);
             const labelName = results.postgres.label;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
