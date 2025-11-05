@@ -2,7 +2,7 @@ name: Auto-label Bug tickets with TimescaleDB & Postgres versions
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [labeled]
   workflow_dispatch:
     inputs:
       issue_number:
@@ -11,7 +11,7 @@ on:
         type: number
 
 jobs:
-  add-version-label:
+  add-version-labels-for-bugs:
     runs-on: ubuntu-latest
     # Only run if the issue has the "bug" label or if manually triggered
     if: contains(github.event.issue.labels.*.name, 'bug') || github.event_name == 'workflow_dispatch'
