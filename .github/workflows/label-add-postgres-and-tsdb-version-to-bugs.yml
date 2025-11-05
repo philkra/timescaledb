@@ -58,7 +58,7 @@ jobs:
             let issueBody, issueNumber;
             
             if (context.eventName === 'workflow_dispatch') {
-              const issueData = ${{ steps.get-issue.outputs.result }};
+              const issueData = JSON.parse(`${{ steps.get-issue.outputs.result }}`);
               issueBody = issueData.issueBody;
               issueNumber = issueData.issueNumber;
             } else {
