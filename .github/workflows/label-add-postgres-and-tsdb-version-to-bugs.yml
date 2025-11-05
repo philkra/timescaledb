@@ -14,6 +14,7 @@ on:
 
 jobs:
   pr-upgrade-requires-restart:
+    name: "PR: Ping database team if 'upgrade-requires-restart' label is set"
     runs-on: ubuntu-latest
     steps:
       - name: "PR: upgrade-requires-restart"
@@ -25,7 +26,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              body: "📣 the `upgrade-requires-restart` label was added, pinging @timescale/database-pings"
+              body: "📣 the `upgrade-requires-restart` label was added, pinging @timescale/database-eng"
             })
 
   #
@@ -37,7 +38,9 @@ jobs:
   # Postgres labels are prefixed with `postgres`, e.g. `postgres-17.4`
   #
   issue-add-version-labels-for-bugs:
+    name: "Issue: Add TimescaleDB and Postgres version labels"
     runs-on: ubuntu-latest
+
     # Only run if the issue has the "bug" label
     if: contains(github.event.issue.labels.*.name, 'bug')
     
