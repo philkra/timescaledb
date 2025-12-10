@@ -1,0 +1,116 @@
+# 
+# URL Shortener for Timescale GitHub org users
+# 
+# If a link is posted in a comment or description of a PR or ticket
+# the action takes that link and converts it to a shortened link and
+# updates the text. This is protecting us from accidentally publishing
+# URLs that have Tiger Data internal purposes only.
+#
+
+name: URL Shortner for comments and descriptions
+
+on:
+  issue_comment:
+    types: [created, edited]
+  pull_request:
+    types: [opened, edited]
+  pull_request_review_comment:
+    types: [created, edited]
+
+jobs:
+  process-text:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Check if author is from Timescale org
+        id: check-org
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const author = context.payload.sender.login;
+            try {
+              const { data: membership } = await github.rest.orgs.checkMembershipForUser({org: 'timescale', username: author});
+              console.log(`User ${author} is a member of timescale org`);
+              return true;
+            } catch (error) {
+              if (error.status === 404) {
+                console.log(`User ${author} is NOT a member of timescale org`);
+                return false;
+              }
+              throw error;
+            }
+          result-encoding: string
+
+      - name: Get comment or PR body text
+        if: ${{ steps.check-org.outputs.result == 'true' }}
+        id: get-text
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let text = '';
+            // Issue or PR comment
+            if (context.payload.comment) {
+              text = context.payload.comment.body;
+            }
+            // PR description
+            else if (context.payload.pull_request) {
+              text = context.payload.pull_request.body || '';
+            }
+            return text;
+          result-encoding: string
+
+      - name: Run shorturl script
+        if: ${{ steps.check-org.outputs.result == 'true' && steps.get-text.outputs.result != '' }}
+        run: |
+          rm output.txt
+          pip install requests
+          python .github/url_shortener.py "${{ steps.get-text.outputs.result }}"
+        env:
+          GH_TOKEN: ${{ secrets.ORG_AUTOMATION_TOKEN }}
+          BLINK_EMAIL: ${{ secrets.BLINK_EMAIL }}
+          BLINK_PASSWORD: ${{ secrets.BLINK_PASSWORD }}
+
+      - name: Prepare output for update
+        if: ${{ steps.check-org.outputs.result == 'true' && hashFiles('output.txt') != '' }}
+        id: extract-text
+        run: |
+          # Set output using heredoc to handle multiline
+          echo "modified_text<<EOF" >> $GITHUB_OUTPUT
+          cat output.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update comment or PR description
+        if: ${{ steps.check-org.outputs.result == 'true' && hashFiles('output.txt') != '' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const modifiedText = `${{ steps.extract-text.outputs.modified_text }}`;
+            
+            // Issue or PR comment
+            if (context.payload.comment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: context.payload.comment.id,
+                body: modifiedText
+              });
+              console.log('Updated comment with shortened URLs');
+            }
+            // PR description
+            else if (context.payload.pull_request) {
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                body: modifiedText
+              });
+              console.log('Updated PR description with shortened URLs');
+            }
