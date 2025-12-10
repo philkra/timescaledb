@@ -6,7 +6,7 @@
 # updates the text. This is protecting us from accidentally publishing
 # URLs that have Tiger Data internal purposes only.
 #
-
+ 
 name: URL Shortner for comments and descriptions
 
 on:
@@ -70,7 +70,6 @@ jobs:
       - name: Run shorturl script
         if: ${{ steps.check-org.outputs.result == 'true' && steps.get-text.outputs.result != '' }}
         run: |
-          rm output.txt
           pip install requests
           python .github/url_shortener.py "${{ steps.get-text.outputs.result }}"
         env:
