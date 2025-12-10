@@ -70,7 +70,6 @@ jobs:
       - name: Run shorturl script
         if: ${{ steps.check-org.outputs.result == 'true' && steps.get-text.outputs.result != '' }}
         run: |
-          rm output.txt
           pip install requests
           python .github/url_shortener.py "${{ steps.get-text.outputs.result }}"
         env:
