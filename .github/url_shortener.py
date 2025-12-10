@@ -191,7 +191,12 @@ def extract_urls(text: str) -> List[str]:
     # Regex pattern to match URLs
     url_pattern = r'https?://[^\s<>"{}|\\^`\[\]]+'
     urls = re.findall(url_pattern, text)
-    
+
+    # Clean up URLs - remove trailing parentheses that are part of markdown syntax
+    # Remove trailing closing parenthesis if it's likely part of markdown
+    # This handles cases like [link](https://example.com)
+    urls = [url[:-1] if url.endswith(')') else url for url in urls]
+
     # Filter out URLs containing the exclude domains
     filtered_urls = []
     for domain_name in EXCLUDE_DOMAINS:
@@ -226,10 +231,11 @@ def main():
         sys.exit(1)
     
     text = sys.argv[1]
-    
-    # Extract URLs from text
     urls = extract_urls(text)
-    
+
+    print(urls)
+    return
+
     if not urls:
         print("No URLs found in the provided text")
         print("\nOriginal text:")
