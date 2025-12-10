@@ -233,9 +233,6 @@ def main():
     text = sys.argv[1]
     urls = extract_urls(text)
 
-    print(urls)
-    return
-
     if not urls:
         print("No URLs found in the provided text")
         print("\nOriginal text:")
