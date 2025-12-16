@@ -18,14 +18,41 @@ BOLD="\033[1m"
 COLOR_GREEN="\033[32m"
 COLOR_BLUE="\033[34m"
 COLOR_RED="\033[31m"
-COLOR_RESET="\033[0m"
 COLOR_CYAN="\033[36m"
 COLOR_YELLOW="\033[33m"
 COLOR_MAGENTA="\033[35m"
 
-log() { echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} $1"; }
-success() { echo -e "${COLOR_GREEN}[SUCCESS]${COLOR_RESET} $1"; }
-error() { echo -e "${COLOR_RED}[ERROR]${COLOR_RESET} $1"; exit 1; }
+log() { echo -e "${COLOR_BLUE}[INFO]${RESET} $1"; }
+success() { echo -e "${COLOR_GREEN}[SUCCESS]${RESET} $1"; }
+error() { echo -e "${COLOR_RED}[ERROR]${RESET} $1"; exit 1; }
+
+header() {
+    clear
+    echo ""
+    echo -e "${COLOR_YELLOW}  _____ _                              __      ____  ____  ${RESET}"
+    echo -e "${COLOR_YELLOW} |_   _(_)_ __ ___   ___  ___  ___ __ _| | ___|  _ \| __ ) ${RESET}"
+    echo -e "${COLOR_YELLOW}   | | | | '_ \` _ \ / _ \/ __|/ __/ _\` | |/ _ \ | | |  _ \ ${RESET}"
+    echo -e "${COLOR_YELLOW}   | | | | | | | | |  __/\__ \ (_| (_| | |  __/ |_| | |_) |${RESET}"
+    echo -e "${COLOR_YELLOW}   |_| |_|_| |_| |_|\___||___/\___\__,_|_|\___|____/|____/ ${RESET}"
+    echo ""
+}
+
+get_timescaledb_version() {
+    psql "postgres://postgres:$DB_PASSWORD@localhost:$DB_PORT/postgres" \
+        -c "select extversion from pg_extension where extname = 'timescaledb';" \
+        | awk 'NR==3 {print $1}'
+}
+
+get_postgres_version() {
+    psql "postgres://postgres:$DB_PASSWORD@localhost:$DB_PORT/postgres" \
+        -t \
+        -c "select version();" \
+        | awk '{print $2}'
+}
+
+# --------------------------------------------------------------- #
+
+header
 
 # --- 1. Check for Docker ---
 echo -e "${BOLD}1. System Check${RESET}"
@@ -97,15 +124,21 @@ fi
 if [ "$SUCCESS" = true ]; then
     echo -e "\r${COLOR_GREEN}✔${RESET} TimescaleDB is ready                                 "
     echo ""
-    
+
+    TSDB_VERSION=$(get_timescaledb_version)
+    POSTGRES_VERSION=$(get_postgres_version)
+
     # --- Final Summary Box ---
     echo -e "${COLOR_GREEN}╔══════════════════════════════════════════════════════════╗${RESET}"
     echo -e "${COLOR_GREEN}║             🚀 SETUP COMPLETED SUCCESSFULLY              ║${RESET}"
     echo -e "${COLOR_GREEN}╚══════════════════════════════════════════════════════════╝${RESET}"
     echo ""
-    echo -e "   ${COLOR_MAGENTA}Container:${RESET}   $CONTAINER_NAME"
-    echo -e "   ${COLOR_MAGENTA}Port:${RESET}        $DB_PORT"
-    echo -e "   ${COLOR_MAGENTA}Password:${RESET}    $DB_PASSWORD"
+    echo -e "   ${BOLD}Postgres:${RESET}    $POSTGRES_VERSION"
+    echo -e "   ${BOLD}TimescaleDB:${RESET} $TSDB_VERSION"
+    echo ""
+    echo -e "   ${BOLD}Container:${RESET}   $CONTAINER_NAME"
+    echo -e "   ${BOLD}Port:${RESET}        $DB_PORT"
+    echo -e "   ${BOLD}Password:${RESET}    $DB_PASSWORD"
     echo ""
     echo -e "${BOLD}   Connect:${RESET}"
     echo -e "     psql \"postgres://postgres:$DB_PASSWORD@localhost:$DB_PORT/postgres\""

@@ -16,21 +16,11 @@
 
 </div>
 
-## Install TimescaleDB
+## Get started with TimescaleDB
 
-Install from a Docker container:
-
-1. Run the TimescaleDB container:
-
-    ```bash
-    docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=password timescale/timescaledb-ha:pg17
-    ```
-
-1. Connect to a database:
-
-    ```bash
-    docker exec -it timescaledb psql -d "postgres://postgres:password@localhost/postgres"
-    ```
+```bash
+curl -sL https://tsdb.co/start-local | bash
+```
 
 See [other installation options](https://docs.tigerdata.com/self-hosted/latest/install/) or try [Tiger Cloud](https://docs.tigerdata.com/getting-started/latest/) for free.
 
